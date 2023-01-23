@@ -15,6 +15,14 @@
     ]
   },
   "context": {
+    "cpu": 256,
+    "mem": 512,
+    "desiredNodeCount": 1,
+    "taskMaxCapacity": 2,
+    "taskMinCapacity": 1,
+    "targetCpuUtilization": 70,
+    "certificateArn": null,
+    "domain": null,
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": true,
     "@aws-cdk/core:target-partitions": [

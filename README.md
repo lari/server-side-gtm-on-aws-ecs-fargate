@@ -56,3 +56,17 @@ command.
  * `cdk docs`        open CDK documentation
 
 Enjoy!
+
+# Domain setup
+
+## Option 1: AWS name servers
+
+- Create a hosted zone in Route53
+- Create a certificate in Certificate Manager
+- Add `domain` and `certificateArn` in CDK context
+
+## Option 2: External name servers
+
+- Create or upload certificate in Certificate Manager
+- Deploy app
+- Add CNAME to service / load balancer default (aws) domain
