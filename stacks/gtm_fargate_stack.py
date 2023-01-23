@@ -29,7 +29,7 @@ class ServerSideGoogleTagManagerFargateStack(Stack):
         validate_fargate_resources(cpu, mem)
 
         # Get Certificate
-        certificate: certificatemanager.ICertificate
+        certificate: certificatemanager.ICertificate = None
         if certificate_arn:
             certificate = certificatemanager.Certificate.from_certificate_arn(
                 self, 'Certificate',
@@ -37,17 +37,20 @@ class ServerSideGoogleTagManagerFargateStack(Stack):
             )
 
         # Get Domain's Hosted Zone
-        hosted_zone: route53.IHostedZone
+        hosted_zone: route53.IHostedZone = None
         if domain:
             hosted_zone = route53.HostedZone.from_lookup(
                 self, 'HostedZone',
                 domain_name=domain
             )
 
-        # Get default VPC
-        vpc = ec2.Vpc.from_lookup(self, "Vpc",
-            is_default=True
-        )
+        # Create VPC
+        vpc = ec2.Vpc(self, "vpc",
+            cidr=ec2.Vpc.DEFAULT_CIDR_RANGE,
+            max_azs=2,
+            enable_dns_hostnames=True,
+            enable_dns_support=True,
+            nat_gateways=2)
 
         # Create ECS Fargate Cluster
         cluster = ecs.Cluster(self, "FargateCluster", vpc=vpc)

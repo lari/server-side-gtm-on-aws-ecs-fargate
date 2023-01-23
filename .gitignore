@@ -8,3 +8,6 @@ __pycache__
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# Dont include cdk.context.json because it contains cached environment info
+cdk.context.json
