@@ -11,7 +11,7 @@ from constructs import Construct
 from utils.fargate_resource_validator import validate_fargate_resources
 
 
-class ServerSideGoogleTagManagerFargateStack(Stack):
+class ServerSideGTMFargateStack(Stack):
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
