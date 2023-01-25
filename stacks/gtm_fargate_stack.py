@@ -5,6 +5,7 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_ecs as ecs,
     aws_ecs_patterns as ecs_patterns,
+    aws_elasticloadbalancingv2 as elbv2,
     aws_route53 as route53,
 )
 from constructs import Construct
@@ -24,7 +25,8 @@ class ServerSideGTMFargateStack(Stack):
         target_cpu_utilization = self.node.try_get_context('targetCpuUtilization') or 80
         certificate_arn = self.node.try_get_context('certificateArn')
         domain = self.node.try_get_context('domain')
-        
+        hosted_zone_id = self.node.try_get_context('hostedZoneId')
+
         # Validate cpu + mem
         validate_fargate_resources(cpu, mem)
 
@@ -38,15 +40,12 @@ class ServerSideGTMFargateStack(Stack):
 
         # Get Domain's Hosted Zone
         hosted_zone: route53.IHostedZone = None
-        if domain:
-            hosted_zone = route53.HostedZone.from_lookup(
-                self, 'HostedZone',
-                domain_name=domain
-            )
+        if hosted_zone_id:
+            hosted_zone = route53.HostedZone.from_hosted_zone_id(self, 'HostedZone', hosted_zone_id=hosted_zone_id)
 
         # Create VPC
         vpc = ec2.Vpc(self, "vpc",
-            cidr=ec2.Vpc.DEFAULT_CIDR_RANGE,
+            cidr=ec2.Vpc.DEFAULT_CIDR_RANGE, # TODO: fix warning "Use ipAddresses instead"
             max_azs=2,
             enable_dns_hostnames=True,
             enable_dns_support=True,
@@ -54,6 +53,14 @@ class ServerSideGTMFargateStack(Stack):
 
         # Create ECS Fargate Cluster
         cluster = ecs.Cluster(self, "FargateCluster", vpc=vpc)
+
+        environment = {
+            "CONTAINER_CONFIG": os.environ['CONTAINER_CONFIG']
+        }
+        if domain and certificate:
+            # Preview server requires HTTPS so we can create it only with custom domain and certificate.
+            # It will use the same load balancer but different port.
+            environment["PREVIEW_SERVER_URL"] = f"https://{domain}:444"
 
         # Create task definition with Docker container
         task_definition = ecs.FargateTaskDefinition(
@@ -75,15 +82,14 @@ class ServerSideGTMFargateStack(Stack):
             port_mappings=[{
                 "containerPort": 8080
             }],
-            environment={
-                "CONTAINER_CONFIG": os.environ['CONTAINER_CONFIG']
-            }
+            environment=environment
         )
 
         # Create load balanced Fargate service
-        fargate = ecs_patterns.ApplicationLoadBalancedFargateService(self, "Service",
+        fargate = ecs_patterns.ApplicationLoadBalancedFargateService(self, "AlbService",
             cluster=cluster,
-            domain_name=domain,
+            # If there's no hosted zone, the domain will be a cname to aws issued domain
+            domain_name=domain if hosted_zone else None,
             domain_zone=hosted_zone,
             certificate=certificate,
             listener_port=443 if certificate else 80,
@@ -103,3 +109,54 @@ class ServerSideGTMFargateStack(Stack):
         ).scale_on_cpu_utilization('cpu-utilization',
             target_utilization_percent=target_cpu_utilization
         )
+
+        if domain and certificate:
+            # Create task definition for preview server
+            preview_task_definition = ecs.FargateTaskDefinition(
+                self, 'FargateTaskDefinitionPreview',
+                runtime_platform=ecs.RuntimePlatform(
+                    operating_system_family=ecs.OperatingSystemFamily.LINUX,
+                    cpu_architecture=ecs.CpuArchitecture.X86_64
+                ),
+                memory_limit_mib=mem,
+                cpu=cpu,
+            )
+            preview_task_definition.add_container(
+                'PreviewContainer',
+                container_name='preview-container',
+                image=ecs.ContainerImage.from_asset('docker/'),
+                readonly_root_filesystem=True,
+                logging=ecs.LogDriver.aws_logs(
+                    stream_prefix=construct_id
+                ),
+                port_mappings=[{
+                    "containerPort": 8080
+                }],
+                environment={
+                    "CONTAINER_CONFIG": os.environ['CONTAINER_CONFIG'],
+                    'RUN_AS_PREVIEW_SERVER': 'true',
+                }
+            )
+
+            # Create ECS Fargate service for preview server
+            service = ecs.FargateService(self, "PreviewService",
+                cluster=cluster,
+                task_definition=preview_task_definition,
+                desired_count=1
+            )
+
+
+            # Add PreviewService to the same load balaner with main service
+            # Create listener to port 444 and target to preview service
+            listener = fargate.load_balancer.add_listener(
+                "PreviewListener",
+                port=444,
+                protocol=elbv2.ApplicationProtocol.HTTPS,
+                certificates=[certificate]
+            )
+            preview_target_group = listener.add_targets("PreviewTarget",
+                port=8080,
+                targets=[service]
+            )
+            # Define health check
+            preview_target_group.configure_health_check(path='/healthz')

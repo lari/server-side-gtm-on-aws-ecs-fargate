@@ -7,7 +7,7 @@ from stacks.gtm_fargate_stack import ServerSideGTMFargateStack
 
 
 app = cdk.App()
-ServerSideGTMFargateStack(app, "ServerSideGTMFargateStack",
+ServerSideGTMFargateStack(app, "ssGTMFargateStack",
     env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
     )
 
