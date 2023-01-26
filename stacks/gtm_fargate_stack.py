@@ -26,12 +26,21 @@ class ServerSideGTMFargateStack(Stack):
         certificate_arn = self.node.try_get_context('certificateArn')
         domain = self.node.try_get_context('domain')
         hosted_zone_id = self.node.try_get_context('hostedZoneId')
+        hosted_zone_name = self.node.try_get_context('hostedZoneName')
 
         if not container_config:
             raise Exception("'containerConfig' context variable is required!")
 
         # Validate cpu + mem
         validate_fargate_resources(cpu, mem)
+
+        # Check hosted zone
+        hosted_zone: route53.IHostedZone = None
+        if hosted_zone_id:
+            hosted_zone = route53.HostedZone.from_hosted_zone_attributes(self, 'HostedZone',
+                hosted_zone_id=hosted_zone_id,
+                zone_name=hosted_zone_name
+            )
 
         # Get Certificate
         certificate: certificatemanager.ICertificate = None
@@ -40,11 +49,11 @@ class ServerSideGTMFargateStack(Stack):
                 self, 'Certificate',
                 certificate_arn=certificate_arn
             )
-
-        # Get Domain's Hosted Zone
-        hosted_zone: route53.IHostedZone = None
-        if hosted_zone_id:
-            hosted_zone = route53.HostedZone.from_hosted_zone_id(self, 'HostedZone', hosted_zone_id=hosted_zone_id)
+        elif hosted_zone:
+            certificate = certificatemanager.Certificate(self, 'Certificate',
+                domain_name=domain,
+                validation=certificatemanager.CertificateValidation.from_dns(hosted_zone=hosted_zone)
+            )
 
         # Create VPC
         vpc = ec2.Vpc(self, "vpc",
