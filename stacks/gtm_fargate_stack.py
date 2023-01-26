@@ -1,4 +1,3 @@
-import os
 from aws_cdk import (
     Stack,
     aws_certificatemanager as certificatemanager,
@@ -23,9 +22,13 @@ class ServerSideGTMFargateStack(Stack):
         task_max_capacity = self.node.try_get_context('taskMaxCapacity') or 2
         task_min_capacity = self.node.try_get_context('taskMinCapacity') or 1
         target_cpu_utilization = self.node.try_get_context('targetCpuUtilization') or 80
+        container_config = self.node.try_get_context('containerConfig')
         certificate_arn = self.node.try_get_context('certificateArn')
         domain = self.node.try_get_context('domain')
         hosted_zone_id = self.node.try_get_context('hostedZoneId')
+
+        if not container_config:
+            raise Exception("'containerConfig' context variable is required!")
 
         # Validate cpu + mem
         validate_fargate_resources(cpu, mem)
@@ -55,7 +58,7 @@ class ServerSideGTMFargateStack(Stack):
         cluster = ecs.Cluster(self, "FargateCluster", vpc=vpc)
 
         environment = {
-            "CONTAINER_CONFIG": os.environ['CONTAINER_CONFIG']
+            "CONTAINER_CONFIG": container_config
         }
         if domain and certificate:
             # Preview server requires HTTPS so we can create it only with custom domain and certificate.
@@ -133,7 +136,7 @@ class ServerSideGTMFargateStack(Stack):
                     "containerPort": 8080
                 }],
                 environment={
-                    "CONTAINER_CONFIG": os.environ['CONTAINER_CONFIG'],
+                    "CONTAINER_CONFIG": container_config,
                     'RUN_AS_PREVIEW_SERVER': 'true',
                 }
             )

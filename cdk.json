@@ -21,6 +21,7 @@
     "taskMaxCapacity": 2,
     "taskMinCapacity": 1,
     "targetCpuUtilization": 70,
+    "containerConfig": null,
     "certificateArn": null,
     "domain": null,
     "hostedZoneId": null,
