@@ -1,18 +1,23 @@
 
 # Server-Side Google Tag Manager on AWS ECS Fargate
 
-This is an example project with [AWS CDK (Python)](https://docs.aws.amazon.com/cdk/api/v2/python/index.html)
+This is an example CloudFormation stack with [AWS CDK (Python)](https://docs.aws.amazon.com/cdk/api/v2/python/index.html)
 that can be used to set up the infrastructure for a Server-Side Google Tag Manager installation on AWS.
 
 You can use the project to output CloudFormation template (`cdk synth`) or manage the whole deployment (`cdk deploy`).
 
-The app creates a *Load balanced Fargate service on Elastic Container Service (ECS)*. Fargate is a serverless
-capacity type on AWS, meaning that you don't need to think about EC2 instance types or anything like that.
-You can simply select the amount of CPU and memory that you want for each instance and AWS will manage the hardware.
-
 ## Architecture
 
-TODO: image
+The stack creates a [Load balanced Fargate service on Elastic Container Service (ECS)](https://docs.aws.amazon.com/AmazonECS/latest/userguide/service-load-balancing.html). Fargate is a serverless capacity type on AWS, meaning you no longer have to provision,
+configure, or scale clusters of virtual machines to run containers. This removes the need to choose server types, 
+decide when to scale your clusters, or optimize cluster packing. You can simply select the amount of CPU and memory that you want
+for each instance and AWS will manage the hardware.
+
+The stack creates a [VPC (virtual private cloud)](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html) using 2 availability zones. Both zones have a public subnet and a private subnet. The load balancer will operate on the public subnets, being publicly accessible in the internet, while the actual Server-side GTM containers will run in the private subnets, making them accessible only to services inside the VPC (i.e. the  load balancer).
+
+To save some cost (~20€/month), the preview server will use the same load balancer as the main servers but listen to a different port (444).
+
+![Architecture diagram for Server-Side GTM on AWS ECS Fargate](server-side-google-tag-manager-on-aws-ecs-fargate.svg)
 
 ## Requirements
 
@@ -84,7 +89,7 @@ The easies way to use a custom domain is to have your name servers hosted in AWS
 AWS to also host the website(s) where you want to use the server-side GTM. In practice, you need a Hosted Zone either for the exact domain 
 you want to use, e.g. `gtm.mydomain.com` or for the domain above it, e.g. `mydomain.com`.
 
-If you provide the `hostedZoneId` and `hostedZoneName` context variables, the app will create an SSL certificate (for HTTPS) automatically.
+If you provide the `hostedZoneId` and `hostedZoneName` context variables, the stack will create an SSL certificate (for HTTPS) automatically.
 Alternatively, you can create/upload the certificate manually in AWS Certificate Manager and add it to the `certificateArn` context variable.
 
 For example, if you have a hosted zone for `mydomain.com` and you want the server-side GTM to use `gtm.mydomain.com` you could use the following
@@ -122,9 +127,9 @@ After setting up the context variables in `cdk.json`, you can use following `cdk
 
 If you use multiple profiles with you AWS CLI, you can add the `--profile` flag with the `cdk` command.
 
-For example, I want to deploy the app with min 3 and max 6 server instances using 0,5 vCPU and 1024 MiB per server
+For example, I want to deploy the stack with min 3 and max 6 server instances using 0,5 vCPU and 1024 MiB per server
 and a domain hosted in AWS Route53. I have a separate profile called `sgtm` for the AWS account, and I want to
-deploy the app in AWS region `eu-west-1`, I could use the following command:
+deploy the stack in AWS region `eu-west-1`, I could use the following command:
 
 ```
 CDK_DEFAULT_ACCOUNT='0123456789' CDK_DEFAULT_REGION='eu-west-1' cdk deploy \
