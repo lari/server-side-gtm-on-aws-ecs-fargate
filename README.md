@@ -1,4 +1,3 @@
-
 # Server-Side Google Tag Manager on AWS ECS Fargate
 
 This is an example CloudFormation stack with [AWS CDK (Python)](https://docs.aws.amazon.com/cdk/api/v2/python/index.html)
@@ -13,31 +12,30 @@ configure, or scale clusters of virtual machines to run containers. This removes
 decide when to scale your clusters, or optimize cluster packing. You can simply select the amount of CPU and memory that you want
 for each instance and AWS will manage the hardware.
 
-The stack creates a [VPC (virtual private cloud)](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html) using 2 availability zones. Both zones have a public subnet and a private subnet. The load balancer will operate on the public subnets, being publicly accessible in the internet, while the actual Server-side GTM containers will run in the private subnets, making them accessible only to services inside the VPC (i.e. the  load balancer).
+The stack creates a [VPC (virtual private cloud)](https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html) using 2 availability zones. Both zones have a public subnet and a private subnet. The load balancer will operate on the public subnets, being accessible to the public via the internet, while the Server-side GTM containers will run in the private subnets, accessible only to VPC services (e.g. the load balancer).
 
-To save some cost (~20€/month), the preview server will use the same load balancer as the main servers but listen to a different port (444).
+To reduce cost (~20€/month), the preview server shares the load balancer with the main servers but uses a different port.
 
 ![Architecture diagram for Server-Side GTM on AWS ECS Fargate](server-side-google-tag-manager-on-aws-ecs-fargate.svg)
 
-## Requirements
+## Installation
 
 To use this template you need:
 
 - An AWS account and [AWS CLI](https://aws.amazon.com/cli/) installed
 - Python 3
 - [Google Tag Manager Server Container](https://developers.google.com/tag-platform/tag-manager/server-side)
-- Registered domain naim (optional but highly recommended)
+- Registered domain name (optional but highly recommended)
 
-## Development Setup
-
-Create a virtualenv on MacOS and Linux:
+### 1. Create a virtualenv (MacOS and Linux)
 
 ```
 $ python3 -m venv .venv
 ```
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+### 2. Activate your virtualenv
+
+On MacOS or Linux:
 
 ```
 $ source .venv/bin/activate
@@ -49,7 +47,7 @@ If you are a Windows platform, you would activate the virtualenv like this:
 % .venv\Scripts\activate.bat
 ```
 
-Once the virtualenv is activated, you can install the required dependencies.
+### 3. Install the required dependencies
 
 ```
 $ pip install -r requirements.txt
@@ -81,9 +79,9 @@ To use them in CLI:
 cdk deploy -c cpu=512 -c containerConfig=XYZ123
 ```
 
-## Domain and HTTPS Certificate Setup
+### Domain and HTTPS Certificate Setup
 
-### Option A: Using AWS Route53 name servers
+#### Option A: Using AWS Route53 name servers
 
 The easies way to use a custom domain is to have your name servers hosted in AWS Route53. This is a very good choise especially if you use
 AWS to also host the website(s) where you want to use the server-side GTM. In practice, you need a Hosted Zone either for the exact domain 
@@ -99,7 +97,7 @@ context variables:
 cdk deploy -c domain=gtm.mydomain.com -c hostedZoneName=mydomain.com -c hostedZoneId=<Hosted Zone ID from AWS>
 ```
 
-### Option B: Using external name servers
+#### Option B: Using external name servers
 
 It's also possible to use external name servers and redirect your custom domain the server-side GTM with a `CNAME` DNS record.
 
@@ -115,9 +113,9 @@ cdk deploy -c domain=gtm.mydomain.com -c certificateArn=<ARN for the certificate
 3. Create a `CNAME` record for your domain and add the load balancer URL as the value.
     - The `cdk deploy` command will write the load balancer URL in the terminal after deployment has finished
 
-## Deployment
+## Usage
 
-After setting up the context variables in `cdk.json`, you can use following `cdk` commands:
+After installation and setting up the context variables in `cdk.json`, you can use following `cdk` commands:
 
  * `cdk ls`          list all stacks in the app
  * `cdk synth`       emits the synthesized CloudFormation template
@@ -145,3 +143,11 @@ CDK_DEFAULT_ACCOUNT='0123456789' CDK_DEFAULT_REGION='eu-west-1' cdk deploy \
 ```
 
 Notice how you might also need to define the `CDK_DEFAULT_ACCOUNT` and `CDK_DEFAULT_REGION` environment variables.
+
+## Links
+
+- [Server-Side Google Tag Manager Documentation](https://developers.google.com/tag-platform/tag-manager/server-side)
+- [AWS CDK Python API Reference](https://docs.aws.amazon.com/cdk/api/v2/python/modules.html)
+- [AWS ECS on AWS Fargate Documentaion](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html)
+- [AWS Route53 Documentation](https://docs.aws.amazon.com/route53/index.html)
+- [AWS Certificate Manager Documentation](https://docs.aws.amazon.com/acm/)
