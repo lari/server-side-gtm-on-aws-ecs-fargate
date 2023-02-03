@@ -11,3 +11,5 @@ cdk.out
 
 # Dont include cdk.context.json because it contains cached environment info
 cdk.context.json
+
+.DS_Store
