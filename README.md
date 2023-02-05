@@ -5,6 +5,8 @@ that can be used to set up the infrastructure for a Server-Side Google Tag Manag
 
 You can use the project to output CloudFormation template (`cdk synth`) or manage the whole deployment (`cdk deploy`).
 
+I also wrote a blog post with more details about the project: [Deploy Server-Side GTM on AWS ECS Fargate with CDK/CloudFormation](https://larihaataja.com/deploy-server-side-gtm-on-aws-ecs-fargate/).
+
 ## Architecture
 
 The stack creates a [Load balanced Fargate service on Elastic Container Service (ECS)](https://docs.aws.amazon.com/AmazonECS/latest/userguide/service-load-balancing.html). Fargate is a serverless capacity type on AWS, meaning you no longer have to provision,
