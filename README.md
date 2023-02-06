@@ -74,6 +74,7 @@ executing `cdk` commands.
 | `domain` | The domain name for the service. | `null` (optional) |
 | `hostedZoneId` | AWS Route53 Hosted Zone ID (if using AWS name servers with the domain) | `null` (optional) |
 | `hostedZoneName` | The Hosted Zone name (i.e. domain) | `null` (optional) |
+| `natGateways` | The number of NAT Gateways to deploy in the VPC. Can be lower than the number of AZs. | 2 (optional) |
 
 To use them in CLI:
 
