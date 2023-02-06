@@ -16,17 +16,18 @@ class ServerSideGTMFargateStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
-        cpu = self.node.try_get_context('cpu') or 256
-        mem = self.node.try_get_context('mem') or 512
-        desired_node_count = self.node.try_get_context('desiredNodeCount') or 1
-        task_max_capacity = self.node.try_get_context('taskMaxCapacity') or 2
-        task_min_capacity = self.node.try_get_context('taskMinCapacity') or 1
-        target_cpu_utilization = self.node.try_get_context('targetCpuUtilization') or 80
+        cpu = int(self.node.try_get_context('cpu')) or 256
+        mem = int(self.node.try_get_context('mem')) or 512
+        desired_node_count = int(self.node.try_get_context('desiredNodeCount')) or 1
+        task_max_capacity = int(self.node.try_get_context('taskMaxCapacity')) or 2
+        task_min_capacity = int(self.node.try_get_context('taskMinCapacity')) or 1
+        target_cpu_utilization = int(self.node.try_get_context('targetCpuUtilization')) or 80
         container_config = self.node.try_get_context('containerConfig')
         certificate_arn = self.node.try_get_context('certificateArn')
         domain = self.node.try_get_context('domain')
         hosted_zone_id = self.node.try_get_context('hostedZoneId')
         hosted_zone_name = self.node.try_get_context('hostedZoneName')
+        nat_gateways = int(self.node.try_get_context('natGateways')) | 2
 
         if not container_config:
             raise Exception("'containerConfig' context variable is required!")
@@ -61,7 +62,7 @@ class ServerSideGTMFargateStack(Stack):
             max_azs=2,
             enable_dns_hostnames=True,
             enable_dns_support=True,
-            nat_gateways=2)
+            nat_gateways=nat_gateways)
 
         # Create ECS Fargate Cluster
         cluster = ecs.Cluster(self, "FargateCluster", vpc=vpc)
